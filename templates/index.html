@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>МаркетПлейс — Объявления</title>
+    <title>Green Market — Объявления</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
     <style>
         /* ===== RESET & BASE ===== */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --primary: #002f34;
-            --primary-light: #004d56;
-            --accent: #23e5db;
-            --accent2: #ffcc00;
-            --danger: #e53e3e;
-            --success: #38a169;
-            --bg: #f5f5f5;
-            --card: #ffffff;
-            --border: #e0e0e0;
-            --text: #1a1a1a;
-            --text-muted: #717171;
-            --shadow: 0 2px 8px rgba(0,0,0,0.08);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+            --primary: #0a1a0a;
+            --primary-light: #0f2d0f;
+            --accent: #00e676;
+            --accent2: #69f0ae;
+            --danger: #ff1744;
+            --success: #00e676;
+            --bg: #0d1a0d;
+            --card: #111f11;
+            --border: #1a3a1a;
+            --text: #e8f5e9;
+            --text-muted: #66bb6a;
+            --shadow: 0 2px 8px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 24px rgba(0,230,118,0.15);
             --radius: 10px;
             --radius-sm: 6px;
         }
         html { scroll-behavior: smooth; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
+            background: #0a140a;
             color: var(--text);
             min-height: 100vh;
         }
@@ -47,7 +47,8 @@
 
         /* ===== HEADER ===== */
         .header {
-            background: var(--primary);
+            background: linear-gradient(90deg, #060e06, #0a1a0a);
+            border-bottom: 1px solid #1a3a1a;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -72,7 +73,23 @@
             white-space: nowrap;
             cursor: pointer;
         }
-        .logo span { color: var(--accent); }
+        .logo-text {
+            background: linear-gradient(90deg,#00e676,#69f0ae,#00bcd4,#00e676,#b2ff59,#00e676);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: rgbFlow 3s linear infinite;
+            font-weight: 900;
+            font-size: 22px;
+            text-shadow: none;
+            filter: drop-shadow(0 0 8px rgba(0,230,118,0.6));
+        }
+        @keyframes rgbFlow {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+        }
         .search-bar {
             flex: 1;
             display: flex;
@@ -90,7 +107,7 @@
         }
         .search-bar button {
             background: var(--accent);
-            color: var(--primary);
+            color: #060e06;
             padding: 0 20px;
             font-weight: 700;
             font-size: 14px;
@@ -119,8 +136,8 @@
 
         /* ===== CATEGORIES NAV ===== */
         .cats-nav {
-            background: var(--card);
-            border-bottom: 1px solid var(--border);
+            background: #0a1a0a;
+            border-bottom: 1px solid #1a3a1a;
         }
         .cats-inner {
             max-width: 1280px;
@@ -153,7 +170,8 @@
 
         /* ===== HERO ===== */
         .hero {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: linear-gradient(135deg, #060e06 0%, #0a1f0a 50%, #0d2a0d 100%);
+            border-bottom: 1px solid #1a3a1a;
             padding: 48px 20px;
             text-align: center;
         }
@@ -249,7 +267,7 @@
         .card-price {
             font-size: 18px;
             font-weight: 800;
-            color: var(--primary);
+            color: var(--accent);
         }
         .card-price.negotiable::after {
             content: ' · Торг';
@@ -780,7 +798,7 @@
 <!-- HEADER -->
 <header class="header">
     <div class="header-inner">
-        <div class="logo" onclick="navigate('home')">🛍️ Марк<span>ет</span></div>
+        <div class="logo" onclick="navigate('home')"><span class="logo-text">🌿 Green Market</span></div>
         <div class="search-bar">
             <input type="text" id="header-search" placeholder="Поиск объявлений..." onkeypress="if(event.key==='Enter')doSearch()">
             <button onclick="doSearch()">Найти</button>
@@ -1084,6 +1102,7 @@ function renderHeader() {
         const unread = state.unreadCount;
         el.innerHTML = `
             <button class="btn btn-post" onclick="navigate('post')">+ Подать объявление</button>
+            <button class="btn btn-outline" onclick="showSupportModal()" title="Поддержка" style="border-color:rgba(0,230,118,0.3)">🆘 Поддержка</button>
             <div class="notif-bell" onclick="toggleNotifDropdown()" title="Уведомления" id="notif-bell">
                 🔔
                 ${unread > 0 ? `<div class="notif-dot">${unread > 9 ? '9+' : unread}</div>` : ''}
@@ -1102,6 +1121,7 @@ function renderHeader() {
     } else {
         el.innerHTML = `
             <button class="btn btn-outline" onclick="showAuthModal('login')">Войти</button>
+            <button class="btn btn-outline" onclick="showSupportModal()" style="border-color:rgba(0,230,118,0.3)">🆘 Поддержка</button>
             <button class="btn btn-post" onclick="navigate('post')">+ Подать объявление</button>
         `;
     }
@@ -1129,8 +1149,8 @@ function renderHome() {
     app().innerHTML = `
         ${!state.activeCategory && !state.filters.search ? `
         <div class="hero">
-            <h1>Всё — рядом с вами</h1>
-            <p>Миллионы объявлений по всей России</p>
+            <h1 style="background:linear-gradient(90deg,#00e676,#69f0ae,#b2ff59);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 20px rgba(0,230,118,0.4))">Green Market</h1>
+            <p>Покупай и продавай — быстро и удобно</p>
             <div class="hero-search">
                 <input type="text" placeholder="Ищите что угодно..." id="hero-q" value="${state.filters.search}" onkeypress="if(event.key==='Enter'){state.filters.search=this.value;loadListings()}">
                 <button onclick="state.filters.search=$('hero-q').value;loadListings()">🔍 Найти</button>
@@ -2092,6 +2112,80 @@ setInterval(async () => {
     }
 }, 8000);
 
+
+// ==========================================
+// SUPPORT & ANNOUNCEMENTS
+// ==========================================
+
+function showSupportModal() {
+    renderModal(`
+        <h2>🆘 Поддержка</h2>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Опишите проблему — администратор ответит вам в уведомлениях</p>
+        <div class="form-group">
+            <label>Тема *</label>
+            <input id="sup-subject" placeholder="Кратко опишите проблему">
+        </div>
+        ${!state.user ? `<div class="form-group"><label>Email для ответа</label><input id="sup-email" type="email" placeholder="your@email.com"></div>` : ''}
+        <div class="form-group">
+            <label>Сообщение *</label>
+            <textarea id="sup-message" style="height:120px" placeholder="Подробно опишите вашу проблему..."></textarea>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:13px;justify-content:center;font-size:15px" onclick="submitSupport()">
+            📤 Отправить
+        </button>
+    `);
+}
+
+async function submitSupport() {
+    const subject = $('sup-subject')?.value?.trim();
+    const message = $('sup-message')?.value?.trim();
+    const email = $('sup-email')?.value?.trim() || '';
+    if (!subject || !message) { toast('Заполните все поля', 'error'); return; }
+    try {
+        await api('/panel/create-ticket/', {
+            method: 'POST',
+            body: JSON.stringify({ subject, message, email }),
+        });
+        closeModal();
+        toast('✅ Обращение отправлено! Ожидайте ответа.', 'success');
+    } catch { toast('Ошибка отправки', 'error'); }
+}
+
+async function loadGlobalAnnouncement() {
+    try {
+        const data = await api('/panel/announcement/');
+        if (data.text) showAnnouncementBanner(data.text);
+    } catch {}
+}
+
+function showAnnouncementBanner(text) {
+    let banner = $('global-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'global-banner';
+        banner.style.cssText = `
+            background: linear-gradient(90deg, #0a2a0a, #0d3a0d);
+            border-bottom: 1px solid #00e676;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #00e676;
+            position: sticky;
+            top: 64px;
+            z-index: 99;
+            box-shadow: 0 2px 12px rgba(0,230,118,0.2);
+        `;
+        // Insert after header
+        document.querySelector('.header').insertAdjacentElement('afterend', banner);
+    }
+    banner.innerHTML = `
+        <span>📢 <strong>Объявление администрации:</strong> ${text}</span>
+        <button onclick="$('global-banner').remove()" style="background:none;border:none;color:#00e676;cursor:pointer;font-size:18px;padding:0 4px">✕</button>
+    `;
+}
+
 // ==========================================
 // INIT
 // ==========================================
@@ -2102,6 +2196,7 @@ async function init() {
         try { await api('/panel/update-seen/', { method: 'POST' }); } catch {}
     }
     renderHeader();
+    loadGlobalAnnouncement();
     await loadCategories();
     await loadListings();
     renderHome();

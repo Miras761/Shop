@@ -3,6 +3,7 @@ from .views import (
     AdminStatsView, AdminUsersView, AdminUserActionView,
     AdminListingsView, AdminListingActionView,
     AdminChatView, AdminDialogMessagesView, UpdateLastSeenView,
+    SupportTicketsView, GlobalAnnouncementView, CreateSupportTicketView,
 )
 
 urlpatterns = [
@@ -14,4 +15,8 @@ urlpatterns = [
     path('chats/', AdminChatView.as_view()),
     path('chats/<int:dialog_id>/', AdminDialogMessagesView.as_view()),
     path('update-seen/', UpdateLastSeenView.as_view()),
+    path('support/', SupportTicketsView.as_view()),
+    path('support/<int:ticket_id>/', SupportTicketsView.as_view()),
+    path('announcement/', GlobalAnnouncementView.as_view()),
+    path('create-ticket/', CreateSupportTicketView.as_view()),
 ]

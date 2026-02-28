@@ -302,3 +302,99 @@ class UpdateLastSeenView(APIView):
         if request.user.is_authenticated:
             User.objects.filter(pk=request.user.pk).update(last_seen=timezone.now())
         return Response({'status': 'ok'})
+
+
+class SupportTicketsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from apps.chat.models import SupportTicket
+        tickets = SupportTicket.objects.select_related('user').all()
+        data = []
+        for t in tickets:
+            data.append({
+                'id': t.id,
+                'subject': t.subject,
+                'message': t.message,
+                'status': t.status,
+                'created_at': t.created_at,
+                'user_id': t.user.id if t.user else None,
+                'username': t.user.username if t.user else 'Гость',
+                'email': t.email or (t.user.email if t.user else ''),
+            })
+        return Response(data)
+
+    def patch(self, request, ticket_id):
+        from apps.chat.models import SupportTicket
+        try:
+            ticket = SupportTicket.objects.get(pk=ticket_id)
+        except SupportTicket.DoesNotExist:
+            return Response({'error': 'Не найдено'}, status=404)
+        ticket.status = request.data.get('status', ticket.status)
+        ticket.save()
+        # Notify user
+        if ticket.user:
+            from apps.chat.models import Notification
+            Notification.objects.create(
+                user=ticket.user,
+                type='message',
+                text=f'✅ Ваш тикет «{ticket.subject}» закрыт администратором',
+            )
+        return Response({'status': 'updated'})
+
+
+class GlobalAnnouncementView(APIView):
+    def get(self, request):
+        from apps.chat.models import GlobalAnnouncement
+        ann = GlobalAnnouncement.objects.filter(is_active=True).first()
+        if ann:
+            return Response({'text': ann.text, 'created_at': ann.created_at})
+        return Response({'text': None})
+
+    def post(self, request):
+        from apps.chat.models import GlobalAnnouncement, Notification
+        from apps.users.models import User
+        if not request.user.is_staff:
+            return Response({'error': 'Нет прав'}, status=403)
+        text = request.data.get('text', '').strip()
+        if not text:
+            return Response({'error': 'Пустой текст'}, status=400)
+        # Деактивируем старые
+        GlobalAnnouncement.objects.filter(is_active=True).update(is_active=False)
+        ann = GlobalAnnouncement.objects.create(
+            text=text, created_by=request.user
+        )
+        # Рассылаем всем активным пользователям
+        users = User.objects.filter(is_active=True).exclude(id=request.user.id)
+        notifs = [
+            Notification(user=u, type='message', text=f'📢 {text}')
+            for u in users
+        ]
+        Notification.objects.bulk_create(notifs, batch_size=500)
+        return Response({'status': 'sent', 'count': len(notifs)})
+
+    def delete(self, request):
+        from apps.chat.models import GlobalAnnouncement
+        if not request.user.is_staff:
+            return Response({'error': 'Нет прав'}, status=403)
+        GlobalAnnouncement.objects.filter(is_active=True).update(is_active=False)
+        return Response({'status': 'cleared'})
+
+
+class CreateSupportTicketView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        from apps.chat.models import SupportTicket
+        subject = request.data.get('subject', '').strip()
+        message = request.data.get('message', '').strip()
+        email = request.data.get('email', '').strip()
+        if not subject or not message:
+            return Response({'error': 'Заполните все поля'}, status=400)
+        ticket = SupportTicket.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            email=email,
+            subject=subject,
+            message=message,
+        )
+        return Response({'status': 'created', 'id': ticket.id})

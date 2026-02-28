@@ -84,3 +84,33 @@ class Notification(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Уведомление'
         verbose_name_plural = 'Уведомления'
+
+
+class SupportTicket(models.Model):
+    STATUS_CHOICES = [('open', 'Открыт'), ('closed', 'Закрыт')]
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='support_tickets', null=True, blank=True
+    )
+    email = models.EmailField(blank=True, verbose_name='Email')
+    subject = models.CharField(max_length=200, verbose_name='Тема')
+    message = models.TextField(verbose_name='Сообщение')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Тикет поддержки'
+        verbose_name_plural = 'Тикеты поддержки'
+
+
+class GlobalAnnouncement(models.Model):
+    text = models.TextField(verbose_name='Текст')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
+
+    class Meta:
+        ordering = ['-created_at']

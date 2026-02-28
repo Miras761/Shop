@@ -7,10 +7,15 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0f1117;--sidebar:#161b26;--card:#1a2030;--card2:#202840;
-  --border:#2a3450;--accent:#00d4aa;--accent2:#4f8eff;--danger:#ff4757;
-  --warn:#ffcc00;--success:#2ecc71;--text:#e8eaf0;--muted:#8892a4;
+  --bg:#060e06;--sidebar:#0a140a;--card:#0d1a0d;--card2:#111f11;
+  --border:#1a3a1a;--accent:#00e676;--accent2:#69f0ae;--danger:#ff1744;
+  --warn:#ffeb3b;--success:#00e676;--text:#e8f5e9;--muted:#66bb6a;
   --radius:10px;
+}
+@keyframes rgbFlow {
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
 a{color:inherit;text-decoration:none}
@@ -265,12 +270,14 @@ function renderShell() {
   const u = adminState.user;
   root().innerHTML = `
     <div class="sidebar">
-      <div class="sidebar-logo">🛡️ Админ <span>МаркетПлейс</span></div>
+      <div class="sidebar-logo" style="background:linear-gradient(90deg,#00e676,#69f0ae,#b2ff59,#00e676);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:rgbFlow 3s linear infinite;filter:drop-shadow(0 0 8px rgba(0,230,118,0.5))">🌿 Green Market <span style="-webkit-text-fill-color:var(--muted);background:none;filter:none">Панель админа</span></div>
       <nav style="padding:8px 0;flex:1">
         <div class="nav-item ${adminState.page==='dashboard'?'active':''}" onclick="navigate('dashboard')"><span class="icon">📊</span><span>Дашборд</span></div>
         <div class="nav-item ${adminState.page==='users'?'active':''}" onclick="navigate('users')"><span class="icon">👥</span><span>Пользователи</span></div>
         <div class="nav-item ${adminState.page==='listings'?'active':''}" onclick="navigate('listings')"><span class="icon">📋</span><span>Объявления</span></div>
         <div class="nav-item ${adminState.page==='chats'?'active':''}" onclick="navigate('chats')"><span class="icon">💬</span><span>Чаты</span></div>
+        <div class="nav-item ${adminState.page==='support'?'active':''}" onclick="navigate('support')"><span class="icon">🆘</span><span>Поддержка</span><span class="nav-badge" id="support-badge" style="display:none">0</span></div>
+        <div class="nav-item ${adminState.page==='announce'?'active':''}" onclick="navigate('announce')"><span class="icon">📢</span><span>Объявление</span></div>
       </nav>
       <div class="sidebar-footer">
         <div style="font-weight:600;color:var(--text)">${u?.username}</div>
@@ -701,6 +708,156 @@ function closeModal() {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+
+// ── SUPPORT ────────────────────────────────────
+async function loadSupport() {
+    $('content').innerHTML = `<div class="empty"><div class="e-icon">⏳</div>Загрузка...</div>`;
+    try {
+        const tickets = await api('/panel/support/');
+        renderSupport(tickets);
+    } catch { $('content').innerHTML = `<div class="empty"><div class="e-icon">❌</div>Ошибка</div>`; }
+}
+
+function renderSupport(tickets) {
+    const open = tickets.filter(t => t.status === 'open');
+    const badge = $('support-badge');
+    if (badge) { badge.textContent = open.length; badge.style.display = open.length ? '' : 'none'; }
+
+    $('content').innerHTML = `
+        <div class="section-header">
+            <div class="section-title">🆘 Обращения в поддержку (${tickets.length})</div>
+            <div style="font-size:13px;color:var(--muted)">Открытых: <strong style="color:var(--danger)">${open.length}</strong></div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Пользователь</th><th>Тема</th><th>Сообщение</th><th>Статус</th><th>Дата</th><th>Действия</th></tr></thead>
+                <tbody>
+                    ${tickets.length === 0 ? `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">Нет обращений</td></tr>` :
+                        tickets.map(t => `
+                        <tr>
+                            <td>
+                                <div style="font-weight:600">${t.username}</div>
+                                <div style="font-size:11px;color:var(--muted)">${t.email || '—'}</div>
+                            </td>
+                            <td style="font-weight:500;max-width:180px">${t.subject}</td>
+                            <td style="font-size:12px;color:var(--muted);max-width:220px">${t.message.slice(0,100)}${t.message.length>100?'...':''}</td>
+                            <td>${t.status === 'open'
+                                ? '<span class="badge badge-warned">🔓 Открыт</span>'
+                                : '<span class="badge badge-active">✅ Закрыт</span>'
+                            }</td>
+                            <td style="font-size:12px;color:var(--muted)">${formatDate(t.created_at)}</td>
+                            <td>
+                                <div class="actions-cell">
+                                    <button class="btn btn-blue btn-sm" onclick="showTicketDetail(${JSON.stringify(t).replace(/"/g,'&quot;')})">👁 Читать</button>
+                                    ${t.status === 'open'
+                                        ? `<button class="btn btn-primary btn-sm" onclick="closeTicket(${t.id})">✅ Закрыть</button>`
+                                        : ''
+                                    }
+                                    ${t.user_id
+                                        ? `<button class="btn btn-warn btn-sm" onclick="showUserAction(${t.user_id},'message','${t.username}')">💬 Ответить</button>`
+                                        : ''
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function showTicketDetail(t) {
+    renderModal(`
+        <h3>🆘 Обращение #${t.id}</h3>
+        <div style="margin-bottom:12px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">От: <strong>${t.username}</strong> ${t.email ? '· ' + t.email : ''}</div>
+            <div style="font-size:12px;color:var(--muted)">${formatDate(t.created_at)}</div>
+        </div>
+        <div style="background:var(--card2);border-radius:8px;padding:16px;margin-bottom:16px">
+            <div style="font-weight:700;margin-bottom:8px">${t.subject}</div>
+            <div style="font-size:14px;line-height:1.7;white-space:pre-wrap">${t.message}</div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Закрыть</button>
+            ${t.user_id ? `<button class="btn btn-primary" onclick="closeModal();showUserAction(${t.user_id},'message','${t.username}')" style="flex:1;justify-content:center">💬 Ответить</button>` : ''}
+            ${t.status==='open' ? `<button class="btn btn-warn" onclick="closeModal();closeTicket(${t.id})" style="flex:1;justify-content:center">✅ Закрыть тикет</button>` : ''}
+        </div>
+    `);
+}
+
+async function closeTicket(ticketId) {
+    try {
+        await api(`/panel/support/${ticketId}/`, {method:'PATCH', body: JSON.stringify({status:'closed'})});
+        toast('Тикет закрыт', 'success');
+        loadSupport();
+    } catch { toast('Ошибка', 'error'); }
+}
+
+// ── ANNOUNCEMENT ───────────────────────────────
+async function renderAnnounce() {
+    $('content').innerHTML = `<div class="empty"><div class="e-icon">⏳</div>Загрузка...</div>`;
+    let current = null;
+    try { current = await api('/panel/announcement/'); } catch {}
+
+    $('content').innerHTML = `
+        <div style="max-width:680px">
+            ${current?.text ? `
+                <div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.3);border-radius:var(--radius);padding:20px;margin-bottom:24px">
+                    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">📢 Текущее объявление · ${formatDate(current.created_at)}</div>
+                    <div style="font-size:15px;line-height:1.7">${current.text}</div>
+                    <button class="btn btn-danger btn-sm" style="margin-top:14px" onclick="clearAnnouncement()">🗑️ Удалить объявление</button>
+                </div>
+            ` : `
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:24px;color:var(--muted);text-align:center">
+                    Нет активного объявления
+                </div>
+            `}
+            <div class="table-wrap" style="padding:24px">
+                <div style="font-weight:700;font-size:16px;margin-bottom:6px">📢 Отправить глобальное объявление</div>
+                <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Сообщение получат <strong>все зарегистрированные пользователи</strong> в виде уведомления</div>
+                <div class="form-group">
+                    <label>Текст объявления</label>
+                    <textarea id="ann-text" style="height:120px;resize:none" placeholder="Например: Обновление сайта, плановые работы, новые правила..."></textarea>
+                </div>
+                <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;font-size:15px" onclick="sendAnnouncement()">
+                    📢 Отправить всем пользователям
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function sendAnnouncement() {
+    const text = $('ann-text')?.value?.trim();
+    if (!text) { toast('Введите текст', 'error'); return; }
+    if (!confirm(`Отправить объявление всем пользователям?`)) return;
+    try {
+        const res = await api('/panel/announcement/', {method:'POST', body: JSON.stringify({text})});
+        toast(`✅ Отправлено ${res.count} пользователям!`, 'success');
+        renderAnnounce();
+    } catch { toast('Ошибка', 'error'); }
+}
+
+async function clearAnnouncement() {
+    if (!confirm('Удалить текущее объявление?')) return;
+    try {
+        await api('/panel/announcement/', {method:'DELETE'});
+        toast('Объявление удалено', 'success');
+        renderAnnounce();
+    } catch { toast('Ошибка', 'error'); }
+}
+
+// ── CHECK SUPPORT BADGE ────────────────────────
+async function checkSupportBadge() {
+    try {
+        const tickets = await api('/panel/support/');
+        const open = tickets.filter(t => t.status === 'open').length;
+        const badge = $('support-badge');
+        if (badge) { badge.textContent = open; badge.style.display = open ? '' : 'none'; }
+    } catch {}
+}
 
 // ── INIT ───────────────────────────────────────
 async function init() {
