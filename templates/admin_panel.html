@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ-панель — МаркетПлейс</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--sidebar:#161b26;--card:#1a2030;--card2:#202840;
+  --border:#2a3450;--accent:#00d4aa;--accent2:#4f8eff;--danger:#ff4757;
+  --warn:#ffcc00;--success:#2ecc71;--text:#e8eaf0;--muted:#8892a4;
+  --radius:10px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;font:inherit}
+input,select,textarea{font:inherit;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid var(--border);font-weight:900;font-size:18px;color:var(--accent)}
+.sidebar-logo span{color:var(--text);font-size:12px;display:block;font-weight:400;margin-top:2px;opacity:.6}
+.nav-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;border-radius:8px;margin:2px 8px;font-size:14px;font-weight:500;color:var(--muted);transition:all .15s}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{background:rgba(0,212,170,.12);color:var(--accent)}
+.nav-item .icon{font-size:18px;width:24px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:700}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.topbar-title{font-size:17px;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.admin-badge{background:rgba(0,212,170,.15);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+.content{padding:24px;flex:1}
+
+/* CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:transform .2s}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-value{font-size:32px;font-weight:900;margin-bottom:4px}
+.stat-label{font-size:12px;color:var(--muted);font-weight:500}
+.stat-card.green .stat-value{color:var(--success)}
+.stat-card.blue .stat-value{color:var(--accent2)}
+.stat-card.red .stat-value{color:var(--danger)}
+.stat-card.yellow .stat-value{color:var(--warn)}
+.stat-card.teal .stat-value{color:var(--accent)}
+
+/* TABLE */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.section-title{font-size:16px;font-weight:700}
+.search-input{max-width:260px;padding:8px 14px;font-size:13px}
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{background:var(--card2);padding:11px 14px;text-align:left;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:12px 14px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.02)}
+.user-cell{display:flex;align-items:center;gap:10px}
+.u-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;overflow:hidden}
+.u-avatar img{width:100%;height:100%;object-fit:cover}
+.u-name{font-weight:600;font-size:13px}
+.u-email{font-size:11px;color:var(--muted)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-online{background:rgba(46,204,113,.15);color:var(--success)}
+.badge-offline{background:rgba(136,146,164,.1);color:var(--muted)}
+.badge-banned{background:rgba(255,71,87,.15);color:var(--danger)}
+.badge-warned{background:rgba(255,204,0,.15);color:var(--warn)}
+.badge-active{background:rgba(0,212,170,.12);color:var(--accent)}
+.badge-archived{background:rgba(136,146,164,.1);color:var(--muted)}
+.badge-new{background:rgba(79,142,255,.15);color:var(--accent2)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:none}
+.btn-primary{background:var(--accent);color:#111}
+.btn-primary:hover{background:#00bfa0}
+.btn-danger{background:rgba(255,71,87,.15);color:var(--danger);border:1px solid rgba(255,71,87,.3)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-warn{background:rgba(255,204,0,.12);color:var(--warn);border:1px solid rgba(255,204,0,.3)}
+.btn-warn:hover{background:var(--warn);color:#111}
+.btn-blue{background:rgba(79,142,255,.12);color:var(--accent2);border:1px solid rgba(79,142,255,.3)}
+.btn-blue:hover{background:var(--accent2);color:#fff}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--card2);color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.actions-cell{display:flex;gap:6px;flex-wrap:wrap}
+
+/* MODAL */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:460px;position:relative}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:20px}
+.modal-close{position:absolute;top:14px;right:14px;color:var(--muted);font-size:20px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--card2)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+
+/* CHAT VIEW */
+.chat-admin-layout{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 120px);background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.chat-dialogs-list{border-right:1px solid var(--border);overflow-y:auto}
+.chat-dialog-item{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;font-size:13px}
+.chat-dialog-item:hover{background:var(--card2)}
+.chat-dialog-item.active{background:rgba(0,212,170,.08);border-left:2px solid var(--accent)}
+.chat-msgs-panel{display:flex;flex-direction:column}
+.chat-msgs-header{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--card2);font-weight:600;font-size:14px}
+.chat-msgs-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px}
+.admin-msg{background:var(--card2);border-radius:10px;padding:10px 14px;font-size:13px}
+.admin-msg .m-sender{font-weight:700;color:var(--accent2);margin-bottom:3px;font-size:12px}
+.admin-msg .m-text{line-height:1.5}
+.admin-msg .m-time{font-size:10px;color:var(--muted);margin-top:3px}
+.admin-msg .m-img{max-width:180px;border-radius:8px;margin-top:6px;cursor:pointer}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;animation:slideIn .3s;max-width:300px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.toast.success{border-color:var(--success);color:var(--success)}
+.toast.error{border-color:var(--danger);color:var(--danger)}
+@keyframes slideIn{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* LOGIN */
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center}
+.login-box h1{font-size:24px;font-weight:900;color:var(--accent);margin-bottom:6px}
+.login-box p{color:var(--muted);font-size:13px;margin-bottom:28px}
+.login-box .form-group{text-align:left;margin-bottom:14px}
+.login-box input{background:var(--card2)}
+
+/* ONLINE DOT */
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block;margin-right:4px}
+.offline-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:4px}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .e-icon{font-size:48px;margin-bottom:12px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{width:60px}.sidebar-logo span,.nav-item span{display:none}
+  .main{margin-left:60px}.stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = '/api';
+let adminState = {
+  token: localStorage.getItem('admin_token'),
+  user: null,
+  page: 'dashboard',
+  stats: null,
+  users: [],
+  listings: [],
+  dialogs: [],
+  dialogMessages: null,
+  search: '',
+};
+
+// ── UTILS ──────────────────────────────────────
+const $ = id => document.getElementById(id);
+const root = () => $('root');
+
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+async function api(path, opts={}) {
+  const headers = {'Content-Type':'application/json'};
+  if (adminState.token) headers['Authorization'] = `Token ${adminState.token}`;
+  const res = await fetch(API + path, {...opts, headers: {...headers,...(opts.headers||{})}});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw data;
+  return data;
+}
+
+function timeAgo(d) {
+  if (!d) return '—';
+  const diff = Date.now() - new Date(d);
+  const m = Math.floor(diff/60000);
+  if (m < 1) return 'только что';
+  if (m < 60) return `${m} мин. назад`;
+  const h = Math.floor(m/60);
+  if (h < 24) return `${h} ч. назад`;
+  return new Date(d).toLocaleDateString('ru-RU');
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ru-RU', {day:'numeric',month:'short',year:'numeric'});
+}
+
+function initials(name) {
+  return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+// ── AUTH ───────────────────────────────────────
+async function checkAuth() {
+  if (!adminState.token) return false;
+  try {
+    adminState.user = await api('/auth/profile/');
+    if (!adminState.user.is_staff) {
+      adminState.token = null;
+      localStorage.removeItem('admin_token');
+      return false;
+    }
+    return true;
+  } catch {
+    adminState.token = null;
+    localStorage.removeItem('admin_token');
+    return false;
+  }
+}
+
+async function doLogin() {
+  const username = $('l-user').value;
+  const password = $('l-pass').value;
+  if (!username || !password) { toast('Заполните все поля', 'error'); return; }
+  try {
+    const data = await api('/auth/login/', {method:'POST', body: JSON.stringify({username, password})});
+    if (!data.user.is_staff) { toast('Нет прав администратора', 'error'); return; }
+    adminState.token = data.token;
+    adminState.user = data.user;
+    localStorage.setItem('admin_token', data.token);
+    toast('Добро пожаловать!', 'success');
+    init();
+  } catch(e) {
+    toast(e.non_field_errors?.[0] || 'Неверный логин или пароль', 'error');
+  }
+}
+
+function doLogout() {
+  adminState.token = null;
+  adminState.user = null;
+  localStorage.removeItem('admin_token');
+  renderLogin();
+}
+
+// ── RENDER LOGIN ───────────────────────────────
+function renderLogin() {
+  root().innerHTML = `
+    <div class="login-page">
+      <div class="login-box">
+        <h1>🛡️ Админ</h1>
+        <p>Панель управления МаркетПлейс</p>
+        <div class="form-group"><label>Логин</label><input id="l-user" placeholder="admin" onkeypress="if(event.key==='Enter')doLogin()"></div>
+        <div class="form-group"><label>Пароль</label><input id="l-pass" type="password" placeholder="••••••" onkeypress="if(event.key==='Enter')doLogin()"></div>
+        <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;margin-top:8px;justify-content:center" onclick="doLogin()">Войти</button>
+      </div>
+    </div>
+  `;
+}
+
+// ── MAIN SHELL ─────────────────────────────────
+function renderShell() {
+  const u = adminState.user;
+  root().innerHTML = `
+    <div class="sidebar">
+      <div class="sidebar-logo">🛡️ Админ <span>МаркетПлейс</span></div>
+      <nav style="padding:8px 0;flex:1">
+        <div class="nav-item ${adminState.page==='dashboard'?'active':''}" onclick="navigate('dashboard')"><span class="icon">📊</span><span>Дашборд</span></div>
+        <div class="nav-item ${adminState.page==='users'?'active':''}" onclick="navigate('users')"><span class="icon">👥</span><span>Пользователи</span></div>
+        <div class="nav-item ${adminState.page==='listings'?'active':''}" onclick="navigate('listings')"><span class="icon">📋</span><span>Объявления</span></div>
+        <div class="nav-item ${adminState.page==='chats'?'active':''}" onclick="navigate('chats')"><span class="icon">💬</span><span>Чаты</span></div>
+      </nav>
+      <div class="sidebar-footer">
+        <div style="font-weight:600;color:var(--text)">${u?.username}</div>
+        <div style="margin-top:6px"><button class="btn btn-ghost btn-sm" onclick="doLogout()">Выйти</button></div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="topbar-title">Дашборд</div>
+        <div class="topbar-right">
+          <span class="admin-badge">👑 Администратор</span>
+          <a href="/" target="_blank" class="btn btn-ghost btn-sm">🌐 Сайт</a>
+        </div>
+      </div>
+      <div class="content" id="content"></div>
+    </div>
+  `;
+  navigate(adminState.page);
+}
+
+function navigate(page) {
+  adminState.page = page;
+  // Update active nav
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const map = {dashboard:0, users:1, listings:2, chats:3};
+  const navItems = document.querySelectorAll('.nav-item');
+  if (navItems[map[page]]) navItems[map[page]].classList.add('active');
+  // Update title
+  const titles = {dashboard:'📊 Дашборд', users:'👥 Пользователи', listings:'📋 Объявления', chats:'💬 Чаты'};
+  const tb = $('topbar-title');
+  if (tb) tb.textContent = titles[page] || page;
+
+  switch(page) {
+    case 'dashboard': loadDashboard(); break;
+    case 'users': loadUsers(); break;
+    case 'listings': loadListings(); break;
+    case 'chats': loadChats(); break;
+  }
+}
+
+// ── DASHBOARD ──────────────────────────────────
+async function loadDashboard() {
+  const content = $('content');
+  content.innerHTML = `<div class="empty"><div class="e-icon">⏳</div>Загрузка...</div>`;
+  try {
+    const stats = await api('/panel/stats/');
+    adminState.stats = stats;
+    renderDashboard(stats);
+  } catch { content.innerHTML = `<div class="empty"><div class="e-icon">❌</div>Ошибка загрузки</div>`; }
+}
+
+function renderDashboard(s) {
+  $('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card teal"><div class="stat-value">${s.total_users}</div><div class="stat-label">👥 Всего пользователей</div></div>
+      <div class="stat-card green"><div class="stat-value">${s.online_users}</div><div class="stat-label">🟢 Онлайн сейчас</div></div>
+      <div class="stat-card red"><div class="stat-value">${s.banned_users}</div><div class="stat-label">⛔ Заблокировано</div></div>
+      <div class="stat-card blue"><div class="stat-value">${s.total_listings}</div><div class="stat-label">📋 Объявлений</div></div>
+      <div class="stat-card green"><div class="stat-value">${s.active_listings}</div><div class="stat-label">✅ Активных</div></div>
+      <div class="stat-card blue"><div class="stat-value">${s.total_messages}</div><div class="stat-label">💬 Сообщений</div></div>
+      <div class="stat-card yellow"><div class="stat-value">${s.new_users_today}</div><div class="stat-label">🆕 Новых за сегодня</div></div>
+      <div class="stat-card yellow"><div class="stat-value">${s.new_listings_today}</div><div class="stat-label">📌 Объявлений сегодня</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="table-wrap" style="padding:20px">
+        <div style="font-weight:700;margin-bottom:14px">⚡ Быстрые действия</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn btn-primary" onclick="navigate('users')" style="justify-content:center">👥 Управление пользователями</button>
+          <button class="btn btn-blue" onclick="navigate('listings')" style="justify-content:center">📋 Модерация объявлений</button>
+          <button class="btn btn-ghost" onclick="navigate('chats')" style="justify-content:center">💬 Просмотр чатов</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="padding:20px">
+        <div style="font-weight:700;margin-bottom:14px">ℹ️ Информация</div>
+        <div style="font-size:13px;color:var(--muted);line-height:2">
+          <div>Онлайн = активность последние 5 минут</div>
+          <div>Предупреждения отправляются уведомлением</div>
+          <div>Бан отключает аккаунт пользователя</div>
+          <div>Удалённые объявления — уведомят продавца</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── USERS ──────────────────────────────────────
+async function loadUsers(search='') {
+  const content = $('content');
+  content.innerHTML = `<div class="empty"><div class="e-icon">⏳</div>Загрузка...</div>`;
+  try {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    adminState.users = await api('/panel/users/' + params);
+    renderUsers();
+  } catch { content.innerHTML = `<div class="empty"><div class="e-icon">❌</div>Ошибка</div>`; }
+}
+
+function renderUsers() {
+  const users = adminState.users;
+  $('content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Пользователи (${users.length})</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input class="search-input" placeholder="🔍 Поиск по имени, email..." onkeypress="if(event.key==='Enter')loadUsers(this.value)" style="width:240px">
+        <button class="btn btn-primary btn-sm" onclick="loadUsers(document.querySelector('.search-input').value)">Найти</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Пользователь</th><th>Контакты</th><th>Статус</th>
+          <th>Предупр.</th><th>Объявл.</th><th>Зарег.</th><th>Действия</th>
+        </tr></thead>
+        <tbody>
+          ${users.length === 0 ? `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">Нет пользователей</td></tr>` :
+            users.map(u => `
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="u-avatar">
+                      ${u.avatar_url ? `<img src="${u.avatar_url}">` : initials(u.full_name)}
+                    </div>
+                    <div>
+                      <div class="u-name">
+                        ${u.full_name}
+                        ${u.is_staff ? '<span class="badge badge-active" style="margin-left:4px">👑 Админ</span>' : ''}
+                      </div>
+                      <div class="u-email">@${u.username}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:12px;color:var(--muted)">
+                  <div>${u.email || '—'}</div>
+                  <div>${u.phone || '—'}</div>
+                  <div>${u.city || '—'}</div>
+                </td>
+                <td>
+                  ${u.is_banned
+                    ? `<span class="badge badge-banned">⛔ Бан</span>`
+                    : u.is_online
+                      ? `<span class="badge badge-online"><span class="online-dot"></span>Онлайн</span>`
+                      : `<span class="badge badge-offline"><span class="offline-dot"></span>${u.last_seen ? timeAgo(u.last_seen) : 'Никогда'}</span>`
+                  }
+                </td>
+                <td>
+                  ${u.warnings_count > 0
+                    ? `<span class="badge badge-warned">⚠️ ${u.warnings_count}</span>`
+                    : '<span style="color:var(--muted)">0</span>'
+                  }
+                </td>
+                <td style="font-weight:600">${u.listings_count}</td>
+                <td style="font-size:12px;color:var(--muted)">${formatDate(u.date_joined)}</td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="btn btn-warn btn-sm" onclick="showUserAction(${u.id},'warn','${u.username}')">⚠️ Пред.</button>
+                    <button class="btn btn-blue btn-sm" onclick="showUserAction(${u.id},'message','${u.username}')">💬 Написать</button>
+                    ${u.is_banned
+                      ? `<button class="btn btn-primary btn-sm" onclick="quickAction(${u.id},'unban')">✅ Разбан</button>`
+                      : `<button class="btn btn-danger btn-sm" onclick="showUserAction(${u.id},'ban','${u.username}')">⛔ Бан</button>`
+                    }
+                  </div>
+                </td>
+              </tr>
+            `).join('')
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── LISTINGS ───────────────────────────────────
+async function loadListings(search='', status='') {
+  const content = $('content');
+  content.innerHTML = `<div class="empty"><div class="e-icon">⏳</div>Загрузка...</div>`;
+  try {
+    const p = new URLSearchParams();
+    if (search) p.set('search', search);
+    if (status) p.set('status', status);
+    adminState.listings = await api('/panel/listings/?' + p);
+    renderListings();
+  } catch { content.innerHTML = `<div class="empty"><div class="e-icon">❌</div>Ошибка</div>`; }
+}
+
+function renderListings() {
+  const listings = adminState.listings;
+  $('content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Объявления (${listings.length})</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input class="search-input" placeholder="🔍 Название, продавец..." style="width:200px" id="l-search">
+        <select style="width:140px" id="l-status">
+          <option value="">Все статусы</option>
+          <option value="active">Активные</option>
+          <option value="archived">В архиве</option>
+          <option value="sold">Проданные</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="loadListings($('l-search').value,$('l-status').value)">Найти</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Объявление</th><th>Продавец</th><th>Цена</th>
+          <th>Статус</th><th>Просмотры</th><th>Дата</th><th>Действия</th>
+        </tr></thead>
+        <tbody>
+          ${listings.length === 0 ? `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">Нет объявлений</td></tr>` :
+            listings.map(l => `
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:44px;height:36px;border-radius:6px;background:var(--card2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">
+                      ${l.main_image ? `<img src="${l.main_image}" style="width:100%;height:100%;object-fit:cover">` : '📦'}
+                    </div>
+                    <div>
+                      <div style="font-weight:600;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.title}</div>
+                      <div style="font-size:11px;color:var(--muted)">${l.category || '—'} · ${l.city || '—'}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-weight:600;font-size:13px">${l.seller_name}</div>
+                  ${l.seller_banned ? '<span class="badge badge-banned" style="font-size:10px">⛔ Бан</span>' : ''}
+                </td>
+                <td style="font-weight:700;color:var(--accent)">
+                  ${new Intl.NumberFormat('ru-RU').format(l.price)} ₽
+                </td>
+                <td>
+                  ${l.status === 'active' ? '<span class="badge badge-active">✅ Активно</span>'
+                  : l.status === 'sold' ? '<span class="badge badge-new">💰 Продано</span>'
+                  : '<span class="badge badge-archived">📦 Архив</span>'}
+                </td>
+                <td style="color:var(--muted)">👁 ${l.views_count}</td>
+                <td style="font-size:12px;color:var(--muted)">${formatDate(l.created_at)}</td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="btn btn-warn btn-sm" onclick="showListingAction(${l.id},'warn_seller','${l.title.replace(/'/g,'')}')">⚠️ Пред.</button>
+                    ${l.status === 'active'
+                      ? `<button class="btn btn-ghost btn-sm" onclick="quickListingAction(${l.id},'archive')">📦 Архив</button>`
+                      : `<button class="btn btn-primary btn-sm" onclick="quickListingAction(${l.id},'activate')">✅ Вернуть</button>`
+                    }
+                    <button class="btn btn-danger btn-sm" onclick="showListingAction(${l.id},'delete','${l.title.replace(/'/g,'')}')">🗑️ Удалить</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── CHATS ──────────────────────────────────────
+async function loadChats() {
+  $('content').innerHTML = `<div class="empty"><div class="e-icon">⏳</div>Загрузка...</div>`;
+  try {
+    adminState.dialogs = await api('/panel/chats/');
+    renderChats();
+  } catch { $('content').innerHTML = `<div class="empty"><div class="e-icon">❌</div>Ошибка</div>`; }
+}
+
+function renderChats() {
+  const dialogs = adminState.dialogs;
+  $('content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Все чаты (${dialogs.length})</div>
+    </div>
+    <div class="chat-admin-layout">
+      <div class="chat-dialogs-list">
+        ${dialogs.length === 0
+          ? `<div style="padding:32px;text-align:center;color:var(--muted)">Нет чатов</div>`
+          : dialogs.map(d => `
+            <div class="chat-dialog-item ${adminState.dialogMessages?.dialog_id===d.id?'active':''}" onclick="loadDialogMessages(${d.id})">
+              <div style="font-weight:600;font-size:13px">${d.participant1.username} ↔ ${d.participant2.username}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">
+                ${d.listing_title ? `📋 ${d.listing_title}` : ''}
+                · ${d.messages_count} сообщ.
+              </div>
+              ${d.last_message ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.last_message}</div>` : ''}
+            </div>
+          `).join('')
+        }
+      </div>
+      <div class="chat-msgs-panel" id="msgs-panel">
+        <div class="chat-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px">
+          <div style="font-size:40px">💬</div>
+          <div>Выберите чат для просмотра</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadDialogMessages(dialogId) {
+  const panel = $('msgs-panel');
+  panel.innerHTML = `<div style="padding:32px;text-align:center;color:var(--muted)">Загрузка...</div>`;
+  try {
+    const data = await api(`/panel/chats/${dialogId}/`);
+    adminState.dialogMessages = data;
+    // Re-render to show active
+    renderChats();
+    // Now fill panel
+    const p = $('msgs-panel');
+    p.innerHTML = `
+      <div class="chat-msgs-header">
+        💬 ${data.participant1} ↔ ${data.participant2}
+        <span style="font-size:12px;color:var(--muted);margin-left:8px">${data.messages.length} сообщений</span>
+      </div>
+      <div class="chat-msgs-body">
+        ${data.messages.length === 0
+          ? `<div style="text-align:center;color:var(--muted);padding:40px">Нет сообщений</div>`
+          : data.messages.map(m => `
+            <div class="admin-msg">
+              <div class="m-sender">${m.sender}</div>
+              ${m.image_url ? `<img class="m-img" src="${m.image_url}" onclick="window.open('${m.image_url}','_blank')">` : ''}
+              ${m.text ? `<div class="m-text">${m.text}</div>` : ''}
+              <div class="m-time">${new Date(m.created_at).toLocaleString('ru-RU')}</div>
+            </div>
+          `).join('')
+        }
+      </div>
+    `;
+    // scroll to bottom
+    const body = p.querySelector('.chat-msgs-body');
+    if (body) body.scrollTop = body.scrollHeight;
+  } catch { panel.innerHTML = `<div style="padding:20px;color:var(--danger)">Ошибка загрузки</div>`; }
+}
+
+// ── ACTION MODALS ──────────────────────────────
+function showUserAction(userId, action, username) {
+  const labels = {
+    ban: {title:`⛔ Заблокировать @${username}`, label:'Причина блокировки', placeholder:'Нарушение правил сайта...', btn:'Заблокировать', cls:'btn-danger'},
+    warn: {title:`⚠️ Предупреждение @${username}`, label:'Текст предупреждения', placeholder:'Пожалуйста, соблюдайте правила...', btn:'Отправить предупреждение', cls:'btn-warn'},
+    message: {title:`💬 Написать @${username}`, label:'Сообщение пользователю', placeholder:'Введите сообщение от администрации...', btn:'Отправить', cls:'btn-primary'},
+  };
+  const l = labels[action];
+  renderModal(`
+    <h3>${l.title}</h3>
+    <div class="form-group">
+      <label>${l.label}</label>
+      <textarea id="action-reason" placeholder="${l.placeholder}" style="height:100px;resize:none"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Отмена</button>
+      <button class="btn ${l.cls}" onclick="doUserAction(${userId},'${action}')" style="flex:1;justify-content:center">${l.btn}</button>
+    </div>
+  `);
+}
+
+async function doUserAction(userId, action) {
+  const reason = $('action-reason')?.value || '';
+  try {
+    const res = await api(`/panel/users/${userId}/action/`, {
+      method: 'POST',
+      body: JSON.stringify({action, reason}),
+    });
+    closeModal();
+    const msgs = {ban:'Пользователь заблокирован', warn:'Предупреждение отправлено', message:'Сообщение отправлено', unban:'Пользователь разблокирован'};
+    toast(msgs[action] || 'Готово', 'success');
+    loadUsers();
+  } catch(e) { toast(e.error || 'Ошибка', 'error'); }
+}
+
+async function quickAction(userId, action) {
+  try {
+    await api(`/panel/users/${userId}/action/`, {method:'POST', body: JSON.stringify({action})});
+    toast('Готово', 'success');
+    loadUsers();
+  } catch(e) { toast(e.error || 'Ошибка', 'error'); }
+}
+
+function showListingAction(listingId, action, title) {
+  const labels = {
+    delete: {title:`🗑️ Удалить объявление`, sub:`«${title}»`, btn:'Удалить', cls:'btn-danger'},
+    warn_seller: {title:`⚠️ Предупредить продавца`, sub:`За объявление «${title}»`, btn:'Отправить', cls:'btn-warn'},
+  };
+  const l = labels[action];
+  renderModal(`
+    <h3>${l.title}</h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px">${l.sub}</p>
+    <div class="form-group">
+      <label>Причина / комментарий</label>
+      <textarea id="l-reason" placeholder="Нарушение правил размещения..." style="height:80px;resize:none"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Отмена</button>
+      <button class="btn ${l.cls}" onclick="doListingAction(${listingId},'${action}')" style="flex:1;justify-content:center">${l.btn}</button>
+    </div>
+  `);
+}
+
+async function doListingAction(listingId, action) {
+  const reason = $('l-reason')?.value || '';
+  try {
+    await api(`/panel/listings/${listingId}/action/`, {method:'POST', body: JSON.stringify({action, reason})});
+    closeModal();
+    toast('Готово', 'success');
+    loadListings();
+  } catch(e) { toast(e.error || 'Ошибка', 'error'); }
+}
+
+async function quickListingAction(listingId, action) {
+  try {
+    await api(`/panel/listings/${listingId}/action/`, {method:'POST', body: JSON.stringify({action})});
+    toast('Готово', 'success');
+    loadListings();
+  } catch(e) { toast(e.error || 'Ошибка', 'error'); }
+}
+
+// ── MODAL ──────────────────────────────────────
+function renderModal(html) {
+  let bd = $('modal-bd');
+  if (!bd) {
+    bd = document.createElement('div');
+    bd.id = 'modal-bd';
+    bd.className = 'modal-backdrop';
+    bd.onclick = e => { if (e.target === bd) closeModal(); };
+    document.body.appendChild(bd);
+  }
+  bd.innerHTML = `<div class="modal"><button class="modal-close" onclick="closeModal()">✕</button>${html}</div>`;
+  bd.style.display = 'flex';
+}
+
+function closeModal() {
+  const m = $('modal-bd');
+  if (m) m.style.display = 'none';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── INIT ───────────────────────────────────────
+async function init() {
+  const ok = await checkAuth();
+  if (!ok) { renderLogin(); return; }
+  renderShell();
+}
+
+init();
+</script>
+</body>
+</html>
