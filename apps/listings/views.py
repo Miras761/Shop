@@ -1,11 +1,12 @@
 from rest_framework import generics, status, permissions, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import FilterSet, NumberFilter, CharFilter
-from .models import Listing, Favorite, Message
-from .serializers import ListingListSerializer, ListingDetailSerializer, MessageSerializer
+from .models import Listing, Favorite, Message, Warning
+from .serializers import ListingListSerializer, ListingDetailSerializer, MessageSerializer, WarningSerializer
+from apps.users.models import User
+from apps.users.serializers import UserSerializer
 
 
 class ListingFilter(FilterSet):
@@ -70,6 +71,31 @@ class MyListingsView(generics.ListAPIView):
     def get_queryset(self):
         return Listing.objects.filter(seller=self.request.user).select_related('category').prefetch_related('images')
 
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+
+class ArchiveListingView(APIView):
+    """Пользователь удаляет своё объявление с указанием причины"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            listing = Listing.objects.get(pk=pk, seller=request.user)
+        except Listing.DoesNotExist:
+            return Response({'error': 'Не найдено'}, status=404)
+
+        reason = request.data.get('reason', 'other')
+        if reason == 'sold':
+            listing.status = 'sold'
+        else:
+            listing.status = 'archived'
+        listing.delete_reason = reason
+        listing.save()
+        return Response({'status': 'ok', 'message': 'Объявление снято с публикации'})
+
 
 class FavoriteToggleView(APIView):
     def post(self, request, pk):
@@ -93,6 +119,11 @@ class FavoritesListView(generics.ListAPIView):
             user=self.request.user
         ).values_list('listing_id', flat=True)
         return Listing.objects.filter(id__in=listing_ids).select_related('seller', 'category').prefetch_related('images')
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
 
 class MessageCreateView(generics.CreateAPIView):
@@ -122,3 +153,107 @@ class SellerListingsView(generics.ListAPIView):
         return Listing.objects.filter(
             seller_id=seller_id, status='active'
         ).select_related('category').prefetch_related('images')
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+
+# ===== ADMIN VIEWS =====
+
+class IsAdminUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+
+class AdminListingListView(generics.ListAPIView):
+    """Админ видит все объявления"""
+    serializer_class = ListingListSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ListingFilter
+    search_fields = ['title', 'description', 'city', 'seller__username']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        return Listing.objects.all().select_related('seller', 'category').prefetch_related('images')
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+
+class AdminDeleteListingView(APIView):
+    """Админ удаляет любое объявление"""
+    permission_classes = [IsAdminUser]
+
+    def delete(self, request, pk):
+        try:
+            listing = Listing.objects.get(pk=pk)
+        except Listing.DoesNotExist:
+            return Response({'error': 'Не найдено'}, status=404)
+
+        listing.status = 'deleted_admin'
+        listing.delete_reason = 'admin'
+        listing.save()
+        return Response({'status': 'ok', 'message': 'Объявление удалено'})
+
+
+class AdminMessagesView(generics.ListAPIView):
+    """Админ видит все сообщения"""
+    serializer_class = MessageSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return Message.objects.all().select_related('sender', 'recipient', 'listing').order_by('-created_at')
+
+
+class AdminUsersView(generics.ListAPIView):
+    """Админ видит всех пользователей"""
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return User.objects.all().order_by('-date_joined')
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+
+class AdminSendWarningView(APIView):
+    """Админ отправляет предупреждение пользователю"""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, user_id):
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Пользователь не найден'}, status=404)
+
+        reason = request.data.get('reason', '')
+        if not reason:
+            return Response({'error': 'Укажите причину'}, status=400)
+
+        Warning.objects.create(user=user, admin=request.user, reason=reason)
+        return Response({'status': 'ok', 'message': f'Предупреждение отправлено пользователю {user.username}'})
+
+
+class AdminWarningListView(generics.ListAPIView):
+    """Список всех предупреждений"""
+    serializer_class = WarningSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return Warning.objects.all().select_related('user', 'admin')
+
+
+class MyWarningsView(generics.ListAPIView):
+    """Предупреждения текущего пользователя"""
+    serializer_class = WarningSerializer
+
+    def get_queryset(self):
+        return Warning.objects.filter(user=self.request.user)

@@ -25,8 +25,6 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.categories',
     'apps.listings',
-    'apps.chat',
-    'apps.panel',
 ]
 
 MIDDLEWARE = [

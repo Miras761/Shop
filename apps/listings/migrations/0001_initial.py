@@ -1,6 +1,6 @@
+from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-from django.conf import settings
 
 
 class Migration(migrations.Migration):
@@ -22,19 +22,16 @@ class Migration(migrations.Migration):
                 ('price', models.DecimalField(decimal_places=2, max_digits=12, verbose_name='Цена')),
                 ('is_negotiable', models.BooleanField(default=False, verbose_name='Торг уместен')),
                 ('city', models.CharField(blank=True, max_length=100, verbose_name='Город')),
-                ('condition', models.CharField(choices=[('new', 'Новое'), ('used', 'Б/У'), ('damaged', 'Требует ремонта')], default='used', max_length=20, verbose_name='Состояние')),
-                ('status', models.CharField(choices=[('active', 'Активно'), ('sold', 'Продано'), ('archived', 'В архиве')], default='active', max_length=20, verbose_name='Статус')),
+                ('condition', models.CharField(choices=[('new','Новое'),('used','Б/У'),('damaged','Требует ремонта')], default='used', max_length=20, verbose_name='Состояние')),
+                ('status', models.CharField(choices=[('active','Активно'),('sold','Продано'),('archived','В архиве'),('deleted_admin','Удалено администратором')], default='active', max_length=20, verbose_name='Статус')),
+                ('delete_reason', models.CharField(blank=True, choices=[('sold','Продано'),('not_selling','Не хочу продавать'),('other','Другая причина'),('admin','Удалено администратором')], max_length=20, null=True, verbose_name='Причина удаления')),
                 ('views_count', models.IntegerField(default=0, verbose_name='Просмотры')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('category', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='listings', to='categories.category', verbose_name='Категория')),
                 ('seller', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='listings', to=settings.AUTH_USER_MODEL, verbose_name='Продавец')),
             ],
-            options={
-                'verbose_name': 'Объявление',
-                'verbose_name_plural': 'Объявления',
-                'ordering': ['-created_at'],
-            },
+            options={'verbose_name': 'Объявление', 'verbose_name_plural': 'Объявления', 'ordering': ['-created_at']},
         ),
         migrations.CreateModel(
             name='ListingImage',
@@ -44,25 +41,17 @@ class Migration(migrations.Migration):
                 ('order', models.IntegerField(default=0, verbose_name='Порядок')),
                 ('listing', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='listings.listing', verbose_name='Объявление')),
             ],
-            options={
-                'verbose_name': 'Изображение',
-                'verbose_name_plural': 'Изображения',
-                'ordering': ['order'],
-            },
+            options={'ordering': ['order'], 'verbose_name': 'Изображение', 'verbose_name_plural': 'Изображения'},
         ),
         migrations.CreateModel(
             name='Favorite',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='favorites', to=settings.AUTH_USER_MODEL)),
                 ('listing', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='favorited_by', to='listings.listing')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='favorites', to=settings.AUTH_USER_MODEL)),
             ],
-            options={
-                'verbose_name': 'Избранное',
-                'verbose_name_plural': 'Избранное',
-                'unique_together': {('user', 'listing')},
-            },
+            options={'verbose_name': 'Избранное', 'verbose_name_plural': 'Избранное', 'unique_together': {('user', 'listing')}},
         ),
         migrations.CreateModel(
             name='Message',
@@ -72,13 +61,20 @@ class Migration(migrations.Migration):
                 ('is_read', models.BooleanField(default=False, verbose_name='Прочитано')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('listing', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='listings.listing', verbose_name='Объявление')),
-                ('sender', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sent_messages', to=settings.AUTH_USER_MODEL, verbose_name='Отправитель')),
                 ('recipient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='received_messages', to=settings.AUTH_USER_MODEL, verbose_name='Получатель')),
+                ('sender', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sent_messages', to=settings.AUTH_USER_MODEL, verbose_name='Отправитель')),
             ],
-            options={
-                'verbose_name': 'Сообщение',
-                'verbose_name_plural': 'Сообщения',
-                'ordering': ['created_at'],
-            },
+            options={'ordering': ['created_at'], 'verbose_name': 'Сообщение', 'verbose_name_plural': 'Сообщения'},
+        ),
+        migrations.CreateModel(
+            name='Warning',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('reason', models.TextField(verbose_name='Причина предупреждения')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('admin', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='sent_warnings', to=settings.AUTH_USER_MODEL, verbose_name='Администратор')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='warnings', to=settings.AUTH_USER_MODEL, verbose_name='Пользователь')),
+            ],
+            options={'verbose_name': 'Предупреждение', 'verbose_name_plural': 'Предупреждения', 'ordering': ['-created_at']},
         ),
     ]

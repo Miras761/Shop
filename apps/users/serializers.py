@@ -10,13 +10,15 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'first_name', 'last_name', 'email',
                   'phone', 'avatar', 'avatar_url', 'city', 'bio',
-                  'rating', 'reviews_count', 'date_joined', 'is_online', 'last_seen']
+                  'rating', 'reviews_count', 'date_joined', 'is_staff', 'is_superuser']
         extra_kwargs = {'avatar': {'write_only': True}}
 
     def get_avatar_url(self, obj):
         request = self.context.get('request')
-        if obj.avatar and request:
-            return request.build_absolute_uri(obj.avatar.url)
+        if obj.avatar:
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
         return None
 
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Listing, ListingImage, Favorite, Message
+from .models import Listing, ListingImage, Favorite, Message, Warning
 from apps.users.serializers import UserSerializer
 from apps.categories.serializers import CategorySerializer
 
@@ -14,9 +14,11 @@ class ListingImageSerializer(serializers.ModelSerializer):
 
     def get_image_url(self, obj):
         request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
 
 class ListingListSerializer(serializers.ModelSerializer):
@@ -30,13 +32,16 @@ class ListingListSerializer(serializers.ModelSerializer):
         model = Listing
         fields = ['id', 'title', 'price', 'is_negotiable', 'city',
                   'condition', 'status', 'views_count', 'created_at',
-                  'main_image', 'seller_name', 'seller_city', 'category_name', 'is_favorite']
+                  'main_image', 'seller_name', 'seller_city', 'category_name',
+                  'is_favorite', 'delete_reason']
 
     def get_main_image(self, obj):
         request = self.context.get('request')
         img = obj.images.first()
-        if img and request:
-            return request.build_absolute_uri(img.image.url)
+        if img and img.image:
+            if request:
+                return request.build_absolute_uri(img.image.url)
+            return img.image.url
         return None
 
     def get_is_favorite(self, obj):
@@ -58,7 +63,7 @@ class ListingDetailSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'description', 'price', 'is_negotiable',
                   'category', 'category_id', 'seller', 'city', 'condition',
                   'status', 'views_count', 'created_at', 'updated_at',
-                  'images', 'is_favorite']
+                  'images', 'is_favorite', 'delete_reason']
         read_only_fields = ['seller', 'views_count', 'created_at', 'updated_at']
 
     def get_is_favorite(self, obj):
@@ -84,12 +89,25 @@ class ListingDetailSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.username', read_only=True)
+    listing_title = serializers.CharField(source='listing.title', read_only=True)
+    recipient_name = serializers.CharField(source='recipient.username', read_only=True)
 
     class Meta:
         model = Message
-        fields = ['id', 'listing', 'sender', 'sender_name', 'recipient', 'text', 'is_read', 'created_at']
+        fields = ['id', 'listing', 'listing_title', 'sender', 'sender_name',
+                  'recipient', 'recipient_name', 'text', 'is_read', 'created_at']
         read_only_fields = ['sender', 'created_at']
 
     def create(self, validated_data):
         validated_data['sender'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class WarningSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    admin_name = serializers.CharField(source='admin.username', read_only=True)
+
+    class Meta:
+        model = Warning
+        fields = ['id', 'user', 'user_name', 'admin', 'admin_name', 'reason', 'created_at']
+        read_only_fields = ['admin', 'created_at']

@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -11,10 +10,6 @@ class User(AbstractUser):
     rating = models.FloatField(default=0, verbose_name='Рейтинг')
     reviews_count = models.IntegerField(default=0, verbose_name='Кол-во отзывов')
     created_at = models.DateTimeField(auto_now_add=True)
-    last_seen = models.DateTimeField(null=True, blank=True, verbose_name='Последний визит')
-    is_banned = models.BooleanField(default=False, verbose_name='Заблокирован')
-    ban_reason = models.TextField(blank=True, verbose_name='Причина блокировки')
-    warnings_count = models.IntegerField(default=0, verbose_name='Предупреждений')
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -22,9 +17,3 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
-
-    @property
-    def is_online(self):
-        if not self.last_seen:
-            return False
-        return (timezone.now() - self.last_seen).seconds < 300

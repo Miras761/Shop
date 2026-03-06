@@ -8,11 +8,18 @@ class Listing(models.Model):
         ('active', 'Активно'),
         ('sold', 'Продано'),
         ('archived', 'В архиве'),
+        ('deleted_admin', 'Удалено администратором'),
     ]
     CONDITION_CHOICES = [
         ('new', 'Новое'),
         ('used', 'Б/У'),
         ('damaged', 'Требует ремонта'),
+    ]
+    DELETE_REASON_CHOICES = [
+        ('sold', 'Продано'),
+        ('not_selling', 'Не хочу продавать'),
+        ('other', 'Другая причина'),
+        ('admin', 'Удалено администратором'),
     ]
 
     title = models.CharField(max_length=200, verbose_name='Заголовок')
@@ -36,6 +43,10 @@ class Listing(models.Model):
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES,
         default='active', verbose_name='Статус'
+    )
+    delete_reason = models.CharField(
+        max_length=20, choices=DELETE_REASON_CHOICES,
+        blank=True, null=True, verbose_name='Причина удаления'
     )
     views_count = models.IntegerField(default=0, verbose_name='Просмотры')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -102,3 +113,24 @@ class Message(models.Model):
         ordering = ['created_at']
         verbose_name = 'Сообщение'
         verbose_name_plural = 'Сообщения'
+
+
+class Warning(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='warnings', verbose_name='Пользователь'
+    )
+    admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='sent_warnings', verbose_name='Администратор'
+    )
+    reason = models.TextField(verbose_name='Причина предупреждения')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Предупреждение'
+        verbose_name_plural = 'Предупреждения'
+
+    def __str__(self):
+        return f'Предупреждение для {self.user.username}'
