@@ -19,7 +19,8 @@ class UserSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
-        return None
+        # Дефолтная аватарка-заглушка
+        return "https://ui-avatars.com/api/?name=" + obj.username + "&background=random&size=200"
 
 
 class RegisterSerializer(serializers.ModelSerializer):

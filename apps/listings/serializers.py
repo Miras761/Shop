@@ -42,7 +42,8 @@ class ListingListSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(img.image.url)
             return img.image.url
-        return None
+        # Заглушка, если фото нет
+        return "https://placehold.co/600x400?text=%D0%9D%D0%B5%D1%82+%D1%84%D0%BE%D1%82%D0%BE"
 
     def get_is_favorite(self, obj):
         request = self.context.get('request')

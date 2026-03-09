@@ -73,10 +73,19 @@ class UpdateAvatarView(APIView):
             return Response({'error': 'Файл не найден'}, status=400)
 
         avatar = request.FILES['avatar']
-        # Разрешаем GIF, JPEG, PNG, WEBP
-        allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-        if avatar.content_type not in allowed_types:
-            return Response({'error': 'Формат не поддерживается. Используйте JPG, PNG, GIF или WEBP'}, status=400)
+        
+        # Проверка через Pillow
+        from PIL import Image
+        try:
+            img = Image.open(avatar)
+            img.verify() # Проверка целостности
+            # Re-open because verify() closes the file or makes it unusable for saving
+            avatar.seek(0)
+            img = Image.open(avatar)
+            if img.format not in ['JPEG', 'PNG', 'GIF', 'WEBP']:
+                return Response({'error': 'Неподдерживаемый формат изображения'}, status=400)
+        except Exception:
+            return Response({'error': 'Некорректный файл изображения'}, status=400)
 
         # Удаляем старый аватар
         if user.avatar:

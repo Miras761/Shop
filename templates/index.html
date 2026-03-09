@@ -941,10 +941,9 @@ async function openDet(id) {
 
     // Main image
     const imgs = l.images||[];
-    const firstImg = imgs[0]?.image_url || null;
+    const firstImg = imgs[0]?.image_url || 'https://placehold.co/600x400?text=%D0%9D%D0%B5%D1%82+%D1%84%D0%BE%D1%82%D0%BE';
     const mainImg = document.getElementById('det-main-img');
-    if (firstImg) { mainImg.src=firstImg; mainImg.alt=l.title; }
-    else { mainImg.src=''; mainImg.alt=''; }
+    mainImg.src=firstImg; mainImg.alt=l.title;
 
     // Thumbnails
     const thumbs = document.getElementById('det-thumbs');

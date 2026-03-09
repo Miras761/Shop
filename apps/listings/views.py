@@ -3,10 +3,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import FilterSet, NumberFilter, CharFilter
+from django.db.models import F
 from .models import Listing, Favorite, Message, Warning
 from .serializers import ListingListSerializer, ListingDetailSerializer, MessageSerializer, WarningSerializer
 from apps.users.models import User
 from apps.users.serializers import UserSerializer
+
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.seller == request.user
 
 
 class ListingFilter(FilterSet):
@@ -50,12 +58,12 @@ class ListingDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsOwnerOrReadOnly()]
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.views_count += 1
-        instance.save(update_fields=['views_count'])
+        Listing.objects.filter(pk=instance.pk).update(views_count=F('views_count') + 1)
+        instance.refresh_from_db()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
