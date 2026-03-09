@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Listing, ListingImage, Favorite, Message, Warning
+from .models import Listing, ListingImage, Favorite, Message, UserWarning
 from apps.users.serializers import UserSerializer
 from apps.categories.serializers import CategorySerializer
 
@@ -109,6 +109,6 @@ class WarningSerializer(serializers.ModelSerializer):
     admin_name = serializers.CharField(source='admin.username', read_only=True)
 
     class Meta:
-        model = Warning
+        model = UserWarning
         fields = ['id', 'user', 'user_name', 'admin', 'admin_name', 'reason', 'created_at']
         read_only_fields = ['admin', 'created_at']

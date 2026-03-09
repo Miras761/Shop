@@ -8,4 +8,4 @@ class CategoryListView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        return Category.objects.filter(parent=None)
+        return Category.objects.all()

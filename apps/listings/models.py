@@ -115,7 +115,7 @@ class Message(models.Model):
         verbose_name_plural = 'Сообщения'
 
 
-class Warning(models.Model):
+class UserWarning(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='warnings', verbose_name='Пользователь'

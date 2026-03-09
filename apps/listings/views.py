@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import FilterSet, NumberFilter, CharFilter
 from django.db.models import F
-from .models import Listing, Favorite, Message, Warning
+from .models import Listing, Favorite, Message, UserWarning
 from .serializers import ListingListSerializer, ListingDetailSerializer, MessageSerializer, WarningSerializer
 from apps.users.models import User
 from apps.users.serializers import UserSerializer
@@ -246,7 +246,7 @@ class AdminSendWarningView(APIView):
         if not reason:
             return Response({'error': 'Укажите причину'}, status=400)
 
-        Warning.objects.create(user=user, admin=request.user, reason=reason)
+        UserWarning.objects.create(user=user, admin=request.user, reason=reason)
         return Response({'status': 'ok', 'message': f'Предупреждение отправлено пользователю {user.username}'})
 
 
@@ -256,7 +256,7 @@ class AdminWarningListView(generics.ListAPIView):
     permission_classes = [IsAdminUser]
 
     def get_queryset(self):
-        return Warning.objects.all().select_related('user', 'admin')
+        return UserWarning.objects.all().select_related('user', 'admin')
 
 
 class MyWarningsView(generics.ListAPIView):
@@ -264,4 +264,4 @@ class MyWarningsView(generics.ListAPIView):
     serializer_class = WarningSerializer
 
     def get_queryset(self):
-        return Warning.objects.filter(user=self.request.user)
+        return UserWarning.objects.filter(user=self.request.user)
