@@ -10,6 +10,7 @@ from .serializers import UserSerializer, RegisterSerializer, LoginSerializer
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    authentication_classes = [] # Отключаем, чтобы не требовать CSRF
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -24,6 +25,7 @@ class RegisterView(generics.CreateAPIView):
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = [] # Отключаем, чтобы не требовать CSRF
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
